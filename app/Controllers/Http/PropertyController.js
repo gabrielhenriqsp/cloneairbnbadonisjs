@@ -2,7 +2,6 @@
 
 const Property = use('App/Models/Property')
 
-
 /** @typedef {import('@adonisjs/framework/src/Request')} Request */
 /** @typedef {import('@adonisjs/framework/src/Response')} Response */
 /** @typedef {import('@adonisjs/framework/src/View')} View */
@@ -20,8 +19,13 @@ class PropertyController {
      * @param {Response} ctx.response
      * @param {View} ctx.view
      */
-    async index() {
-        const properties = Property.all()
+    async index({ request }) {
+        const { latitude, longitude } = request.all()
+
+        const properties = Property.query()
+            .with('images')
+            .nearBy(latitude, longitude, 10)
+            .fetch();
 
         return properties
     }
@@ -45,7 +49,23 @@ class PropertyController {
      * @param {Request} ctx.request
      * @param {Response} ctx.response
      */
-    async store({ request, response }) {}
+    async store({ params, request, response }) {
+        const property = await Property.findOrFail(params.id);
+
+        const data = request.only([
+            'title',
+            'address',
+            'latitude',
+            'longitude',
+            'price'
+        ]);
+
+        property.merge(data);
+
+        await property.save();
+
+        return property;
+    }
 
     /**
      * Display a single property.
